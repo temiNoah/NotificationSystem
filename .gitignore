@@ -6,10 +6,11 @@ HELP.md
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+*/target/*
+*/target/**
 ### IntelliJ IDEA ###
 .idea
 *.iws
 *.iml
 *.ipr
-
 *.class
