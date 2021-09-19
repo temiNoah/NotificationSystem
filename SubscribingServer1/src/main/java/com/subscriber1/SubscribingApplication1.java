@@ -1,11 +1,10 @@
+package com.subscriber1;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.context.annotation.ComponentScan;
-
-import java.io.IOException;
-import java.util.Map;
 
 @SpringBootApplication
 @ComponentScan(basePackages = {"com.subscriber1.*"})
