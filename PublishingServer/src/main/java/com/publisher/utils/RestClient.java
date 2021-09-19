@@ -27,7 +27,6 @@ public class RestClient {
 
     @Autowired
     RestTemplate restTemplate ; // = new RestTemplate();
-
     HttpHeaders httpHeaders;
 
     public  RestClient(){
