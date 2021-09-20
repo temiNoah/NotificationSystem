@@ -10,6 +10,8 @@ import com.publisher.dto.request.SubscriberRequest;
 import com.publisher.dto.response.PublishResponse;
 import com.publisher.dto.response.SubscriberResponse;
 import com.publisher.utils.RestClient;
+import io.github.resilience4j.retry.Retry;
+import io.github.resilience4j.retry.RetryRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,17 +30,21 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Supplier;
 
 @Service
 public class PublishingService {
 
     private static final Logger logger = LoggerFactory.getLogger(PublishingService.class);
 
-    @Autowired
+        @Autowired
         private Store store;
 
         @Autowired
         private RestClient restClient;
+
+        @Autowired
+        private RetryRegistry retryRegistry;
 
         private ObjectMapper mapper ;
 
@@ -65,40 +71,50 @@ public class PublishingService {
 
         }
 
-    public PublishResponse publish(String topic, Map<String, Object> req) throws IOException{
-
-        PublishResponse publishResponse= new PublishResponse();
-
-        //System.out.println(req.values().stream().findFirst().get());
-        String notification;
-        String data =  req.values().stream().findFirst().get().toString();
-        if(data.contains("="))
-            data = data.replaceAll("=" , ":");
-        if(data.contains("{") && data.contains("}"))
-            notification = fetchMessage(data);
-        else
-            notification= data;
-
-        PublishRequest publishRequest=new PublishRequest();
-        publishRequest.setTopic(topic);
-        publishRequest.setData(notification);
+        public PublishResponse publish(String topic, Map<String, Object> req) throws IOException{
 
 
-        Set<Subscriber> subscribers = store.getSubscribers( publishRequest.getTopic());
-        //publish to subscribers
-         subscribers.stream().forEach( subscriber ->
-                                            {
-                                                CompletableFuture<ResponseEntity<PublishResponse>> p= restClient.postCall( subscriber,publishRequest);
-                                                try {
-                                                    logger.info(String.format("{ \"%s \" : \" %s \"}" ,p.get().getBody().getData(),p.get().getBody().getTopic()));
-                                                } catch (InterruptedException e) {
-                                                    logger.error(e.getMessage());
-                                                    e.printStackTrace();
-                                                } catch (ExecutionException e) {
-                                                    logger.error(e.getMessage());
-                                                    e.printStackTrace();
-                                                }
-                                                //return null;
+                    PublishResponse publishResponse= new PublishResponse();
+
+                    //System.out.println(req.values().stream().findFirst().get());
+                    String notification;
+                    String data =  req.values().stream().findFirst().get().toString();
+                    if(data.contains("="))
+                        data = data.replaceAll("=" , ":");
+                    if(data.contains("{") && data.contains("}"))
+                        notification = fetchMessage(data);
+                    else
+                        notification= data;
+
+                    PublishRequest publishRequest=new PublishRequest();
+                    publishRequest.setTopic(topic);
+                    publishRequest.setData(notification);
+
+
+                    Set<Subscriber> subscribers = store.getSubscribers( publishRequest.getTopic());
+                    //publish to subscribers
+                     subscribers.stream().forEach( subscriber ->
+                                                    {
+                                                        try {
+                                                            Retry retry = retryRegistry.retry("retryRegistry","publishingConfig");
+                                                            Supplier<CompletableFuture<ResponseEntity<PublishResponse>>>  supplier= ()-> restClient.postCall(subscriber,publishRequest);
+                                                            Supplier<CompletableFuture<ResponseEntity<PublishResponse>>>  retrySupplier= Retry.decorateSupplier(retry,supplier);
+                                                            CompletableFuture<ResponseEntity<PublishResponse>> p= retrySupplier.get();//   restClient.postCall( subscriber,publishRequest);
+
+
+
+                                                            logger.info(String.format("{ \"%s \" : \" %s \"}" ,p.get().getBody().getData(),p.get().getBody().getTopic()));
+                                                        } catch (InterruptedException e) {
+                                                            logger.error(e.getMessage());
+                                                            e.printStackTrace();
+                                                        } catch (ExecutionException e) {
+                                                            logger.error(e.getMessage());
+                                                            e.printStackTrace();
+                                                        }catch (Exception e){
+                                                            logger.error(e.getMessage());
+                                                            e.printStackTrace();
+                                                        }
+                                                        //return null;
                                             }
                                  );
 

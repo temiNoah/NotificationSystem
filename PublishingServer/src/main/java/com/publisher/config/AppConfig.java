@@ -48,10 +48,10 @@ public class AppConfig {
 
         RetryConfig publishingConfig = RetryConfig.custom()
                 .maxAttempts(5)
-                .waitDuration(Duration.ofMillis(100))
+                .waitDuration(Duration.  ofMillis(100))
                 //.retryOnResult(remoteResponse -> remoteResponse.getCode)
-                .retryOnException(e -> (e instanceof RuntimeException))
-                .retryExceptions(IOException.class , RuntimeException.class )
+                //.retryOnException(e -> (e instanceof RuntimeException))
+                .retryExceptions(IOException.class , RuntimeException.class ,Exception.class)
                 .build();
 
         HashMap<String , RetryConfig> config = new HashMap<>();
