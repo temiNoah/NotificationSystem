@@ -2,3 +2,9 @@ server:
   port: 8000
 
 topics: weather,stock,sport
+
+spring:
+  security:
+    user:
+      name: temi
+      password: temi

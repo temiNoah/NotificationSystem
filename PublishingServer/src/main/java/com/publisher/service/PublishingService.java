@@ -76,7 +76,6 @@ public class PublishingService {
 
                     PublishResponse publishResponse= new PublishResponse();
 
-                    //System.out.println(req.values().stream().findFirst().get());
                     String notification;
                     String data =  req.values().stream().findFirst().get().toString();
                     if(data.contains("="))
